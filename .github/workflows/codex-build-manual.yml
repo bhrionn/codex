@@ -1,0 +1,104 @@
+name: Codex Build and Cache
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+
+      - name: Download Codex repository
+        id: download-codex
+        run: |
+          git clone https://github.com/openai/codex.git codex
+          cd codex
+          CODEX_COMMIT=$(git rev-parse HEAD)
+          echo "CODEX_COMMIT=$CODEX_COMMIT" >> $GITHUB_OUTPUT
+          echo "CODEX_DIR=$(pwd)" >> $GITHUB_OUTPUT
+          echo "Current directory: $(pwd)"
+          echo "Codex commit: $CODEX_COMMIT"
+
+
+      - name: Cache Codex build
+        id: cache-codex        
+        uses: actions/cache@v4
+        with:
+          path: codex/codex-rs/target/release/
+          key: codex-build-${{ runner.os }}-${{ steps.download-codex.outputs.CODEX_COMMIT }}
+          restore-keys: |
+            codex-build-${{ runner.os }}-
+
+      - name: Setup Rust cache
+        if: steps.cache-codex.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "codex/codex-rs -> target"
+          cache-on-failure: true
+
+      - name: Install Rust dependencies
+        if: steps.cache-codex.outputs.cache-hit != 'true'
+        run: |
+          # Print the current directory for debugging
+          pwd
+          cd ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs && cargo fetch
+
+      - name: Build Codex release
+        if:  steps.cache-codex.outputs.cache-hit != 'true'
+        run: |
+          echo "Current directory: $(pwd)"
+          #cd ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs && cargo build --release
+          # Touch a test file in build release directory for testing
+          touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex-test-file.txt
+          touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex
+
+      - name: Verify build
+        run: |        
+          BINARY_PATH="${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex"
+          echo "Checking for binary at: $BINARY_PATH"
+          ls -la ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/
+          if [ -f $BINARY_PATH ]; then
+            echo "✅ Codex binary built successfully"
+            $BINARY_PATH --version || echo "Binary exists but version check failed"
+          else
+              echo "❌ Codex binary not found"
+              exit 1
+            fi        
+      
+      - name: Package artifacts
+        run: |
+          mkdir -p dist
+          cp ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex dist/ 2>/dev/null || true          
+          cd dist
+          tar -czf ../codex-binary-${{ runner.os }}.tar.gz *
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-binary-${{ runner.os }}
+          path: codex-binary-${{ runner.os }}.tar.gz
+          retention-days: 90
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: codex-binary-${{ runner.os }}.tar.gz
+          body: |
+            ## Codex Binary Release
+            
+            Built from OpenAI Codex commit: ${{ steps.download-codex.outputs.CODEX_COMMIT }}
+            
+            ### Installation
+            ```bash
+                        tar -xzf codex-binary-${{ runner.os }}.tar.gz
+                        chmod +x codex
+                        ./codex --version
+            ```    
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ 
