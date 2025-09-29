@@ -25,11 +25,11 @@ jobs:
 
 
       - name: Cache Codex build
-        id: cache-codex        
+        id: cache-codex
         uses: actions/cache@v4
         with:
           path: codex/codex-rs/target/release/
-          key: codex-build-${{ runner.os }}-${{ steps.download-codex.outputs.CODEX_COMMIT }}
+          key: codex-build-${{ runner.os }}-${{ steps.download-codex.outputs.CODEX_COMMIT }}-nocache
           restore-keys: |
             codex-build-${{ runner.os }}-
 
@@ -51,11 +51,10 @@ jobs:
         if:  steps.cache-codex.outputs.cache-hit != 'true'
         run: |
           echo "Current directory: $(pwd)"
-          #cd ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs && cargo build --release
-          # Touch a test file in build release directory for testing          
-          #mkdir ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/
-          touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex-test-file.txt
-          touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex
+          cd ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs && cargo build --release
+          # Touch a test file in build release directory for testing                    
+          #touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex
+          #touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex-test-file.txt
 
       - name: Verify build
         run: |        
