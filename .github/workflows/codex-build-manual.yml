@@ -53,6 +53,8 @@ jobs:
           echo "Current directory: $(pwd)"
           #cd ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs && cargo build --release
           # Touch a test file in build release directory for testing
+          mkdir ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/
+          mkdir ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/
           touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex-test-file.txt
           touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex
 
