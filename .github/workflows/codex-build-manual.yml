@@ -15,7 +15,7 @@ jobs:
       - name: Download Codex repository
         id: download-codex
         run: |
-          git clone https://github.com/openai/codex.git codex
+          git clone https://github.com/bhrionn/codex.git codex
           cd codex
           CODEX_COMMIT=$(git rev-parse HEAD)
           echo "CODEX_COMMIT=$CODEX_COMMIT" >> $GITHUB_OUTPUT
@@ -52,9 +52,8 @@ jobs:
         run: |
           echo "Current directory: $(pwd)"
           #cd ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs && cargo build --release
-          # Touch a test file in build release directory for testing
-          mkdir ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/
-          mkdir ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/
+          # Touch a test file in build release directory for testing          
+          #mkdir ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/
           touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex-test-file.txt
           touch ${{ steps.download-codex.outputs.CODEX_DIR }}/codex-rs/target/release/codex
 
