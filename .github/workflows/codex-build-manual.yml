@@ -90,20 +90,21 @@ jobs:
           echo "📦 Artifact name: codex-binary-${{ runner.os }}"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1        
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
         with:
           files: codex-binary-${{ runner.os }}.tar.gz
           body: |
             ## Codex Binary Release
-            
+
             Built from OpenAI Codex commit: ${{ steps.download-codex.outputs.CODEX_COMMIT }}
-            
+
             ### Installation
             ```bash
                         tar -xzf codex-binary-${{ runner.os }}.tar.gz
                         chmod +x codex
                         ./codex --version
-            ```    
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
